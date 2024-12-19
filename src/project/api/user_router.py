@@ -48,9 +48,9 @@ async def get_user_by_id(
 )
 async def add_user(
     user_dto: UserCreateUpdateSchema,
-    current_user: UserSchema = Depends(get_current_user),
+    # current_user: UserSchema = Depends(get_current_user),
 ) -> UserSchema:
-    check_for_admin_access(user=current_user)
+    # check_for_admin_access(user=current_user)
     try:
         async with database.session() as session:
             user_dto.password = get_password_hash(password=user_dto.password)

@@ -3,10 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import HostProgramPair
+from project.infrastructure.postgres.models import HostProgramPair, Hosts, Programs
 from project.schemas.models import HostProgramPairCreateUpdateSchema, HostProgramPairSchema
 
-from project.core.exceptions import NotFound, AlreadyExists, Error
+from project.core.exceptions import NotFound, AlreadyExists, ForeignKeyViolationError
 
 
 class HostProgramPairRepository:
@@ -61,6 +61,14 @@ class HostProgramPairRepository:
             .returning(self._collection)
         )
 
+        host = await session.scalar(select(Hosts.id).where(self._collection.host_id == Hosts.id))
+        if not host:
+            raise ForeignKeyViolationError(message=f"Host with id {pair.host_id} not found")
+        
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {pair.program_id} not found")
+
         try:
             created_pair = await session.scalar(query)
             await session.flush()
@@ -81,6 +89,14 @@ class HostProgramPairRepository:
             .values(pair.model_dump())
             .returning(self._collection)
         )
+
+        host = await session.scalar(select(Hosts.id).where(self._collection.host_id == Hosts.id))
+        if not host:
+            raise ForeignKeyViolationError(message=f"Host with id {pair.host_id} not found")
+        
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {pair.program_id} not found")
 
         updated_pair = await session.scalar(query)
 

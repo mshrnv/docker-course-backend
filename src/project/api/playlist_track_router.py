@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import playlist_track_repo
 from project.schemas.models import PlaylistAndTrackPairCreateUpdateSchema, PlaylistAndTrackPairSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, ForeignKeyViolationError, NotFound
 
 playlist_and_track_pair_router = APIRouter()
 
@@ -42,6 +42,8 @@ async def add_pair(pair_dto: PlaylistAndTrackPairCreateUpdateSchema):
     try:
         async with database.session() as session:
             new_pair = await playlist_track_repo.create_pair(session=session, pair=pair_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -61,6 +63,8 @@ async def update_pair(pair_id: int, pair_dto: PlaylistAndTrackPairCreateUpdateSc
                 pair_id=pair_id,
                 pair=pair_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import Album
+from project.infrastructure.postgres.models import Album, Artists, Tracks
 from project.schemas.models import AlbumCreateUpdateSchema, AlbumSchema
-from project.core.exceptions import NotFound, AlreadyExists
+from project.core.exceptions import ForeignKeyViolationError, NotFound, AlreadyExists
 
 
 class AlbumsRepository:
@@ -60,6 +60,14 @@ class AlbumsRepository:
             .returning(self._collection)
         )
 
+        artist = await session.scalar(select(Artists.id).where(Album.artist_id == Artists.id))
+        if not artist:
+            raise ForeignKeyViolationError(message=f"Artist with id {album.artist_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(Album.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {album.track_id} not found")
+
         try:
             created_album = await session.scalar(query)
             await session.flush()
@@ -80,6 +88,14 @@ class AlbumsRepository:
             .values(album.model_dump())
             .returning(self._collection)
         )
+
+        artist = await session.scalar(select(Artists.id).where(Album.artist_id == Artists.id))
+        if not artist:
+            raise ForeignKeyViolationError(message=f"Artist with id {album.artist_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(Album.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {album.track_id} not found")
 
         updated_album = await session.scalar(query)
 

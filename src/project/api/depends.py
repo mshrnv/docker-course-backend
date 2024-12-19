@@ -58,9 +58,9 @@ async def get_current_user(
         raise CredentialsException(detail=AUTH_EXCEPTION_MESSAGE)
 
     async with database.session() as session:
-        user = await user_repo.get_user_by_email(
+        user = await user_repo.get_user_by_username(
             session=session,
-            email=token_data.username,
+            username=token_data.username,
         )
 
     if user is None:

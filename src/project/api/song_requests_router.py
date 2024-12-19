@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import song_requests_repo
 from project.schemas.models import SongRequestCreateUpdateSchema, SongRequestSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, ForeignKeyViolationError, NotFound
 
 song_requests_router = APIRouter()
 
@@ -13,7 +13,7 @@ song_requests_router = APIRouter()
 )
 async def get_all_requests() -> list[SongRequestSchema]:
     async with database.session() as session:
-        all_requests = await song_requests_repo.get_all_requests(session)
+        all_requests = await song_requests_repo.get_all_song_requests(session)
     
     return all_requests
 
@@ -26,7 +26,7 @@ async def get_all_requests() -> list[SongRequestSchema]:
 async def get_request_by_id(request_id: int) -> SongRequestSchema:
     try:
         async with database.session() as session:
-            request = await song_requests_repo.get_request_by_id(session=session, request_id=request_id)
+            request = await song_requests_repo.get_song_request_by_id(session=session, song_request_id=request_id)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 
@@ -41,7 +41,9 @@ async def get_request_by_id(request_id: int) -> SongRequestSchema:
 async def add_request(request_dto: SongRequestCreateUpdateSchema):
     try:
         async with database.session() as session:
-            new_request = await song_requests_repo.create_request(session=session, request=request_dto)
+            new_request = await song_requests_repo.create_song_request(session=session, song_request=request_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -56,11 +58,13 @@ async def add_request(request_dto: SongRequestCreateUpdateSchema):
 async def update_request(request_id: int, request_dto: SongRequestCreateUpdateSchema):
     try:
         async with database.session() as session:
-            updated_request = await song_requests_repo.update_request(
+            updated_request = await song_requests_repo.update_song_request(
                 session=session,
                 request_id=request_id,
-                request=request_dto,
+                song_request_id=request_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 
@@ -74,7 +78,7 @@ async def update_request(request_id: int, request_dto: SongRequestCreateUpdateSc
 async def delete_request(request_id: int):
     try:
         async with database.session() as session:
-            request = await song_requests_repo.delete_request(session=session, request_id=request_id)
+            request = await song_requests_repo.delete_song_request(session=session, song_request_id=request_id)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

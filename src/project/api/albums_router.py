@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import albums_repo
 from project.schemas.models import AlbumCreateUpdateSchema, AlbumSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, ForeignKeyViolationError, NotFound
 
 albums_router = APIRouter()
 
@@ -42,6 +42,8 @@ async def add_album(album_dto: AlbumCreateUpdateSchema):
     try:
         async with database.session() as session:
             new_album = await albums_repo.create_album(session=session, album=album_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -61,6 +63,8 @@ async def update_album(album_id: int, album_dto: AlbumCreateUpdateSchema):
                 album_id=album_id,
                 album=album_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

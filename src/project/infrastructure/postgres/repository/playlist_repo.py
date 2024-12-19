@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import Playlists
+from project.infrastructure.postgres.models import Playlists, Programs
 from project.schemas.models import PlaylistCreateUpdateSchema, PlaylistSchema
-from project.core.exceptions import NotFound, AlreadyExists
+from project.core.exceptions import ForeignKeyViolationError, NotFound, AlreadyExists
 
 
 class PlaylistsRepository:
@@ -60,6 +60,10 @@ class PlaylistsRepository:
             .returning(self._collection)
         )
 
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {playlist.program_id} not found")
+
         try:
             created_playlist = await session.scalar(query)
             await session.flush()
@@ -80,7 +84,11 @@ class PlaylistsRepository:
             .values(playlist.model_dump())
             .returning(self._collection)
         )
-
+        
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {playlist.program_id} not found")
+        
         updated_playlist = await session.scalar(query)
 
         if not updated_playlist:

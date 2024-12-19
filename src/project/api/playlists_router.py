@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import playlists_repo
 from project.schemas.models import PlaylistCreateUpdateSchema, PlaylistSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, ForeignKeyViolationError, NotFound
 
 playlists_router = APIRouter()
 
@@ -42,6 +42,8 @@ async def add_playlist(playlist_dto: PlaylistCreateUpdateSchema):
     try:
         async with database.session() as session:
             new_playlist = await playlists_repo.create_playlist(session=session, playlist=playlist_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 

@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import PlaylistAndTrackPair
+from project.infrastructure.postgres.models import PlaylistAndTrackPair, Playlists, Tracks
 from project.schemas.models import PlaylistAndTrackPairCreateUpdateSchema, PlaylistAndTrackPairSchema
-from project.core.exceptions import NotFound, AlreadyExists
+from project.core.exceptions import ForeignKeyViolationError, NotFound, AlreadyExists
 
 
 class PlaylistAndTrackPairRepository:
@@ -60,6 +60,14 @@ class PlaylistAndTrackPairRepository:
             .returning(self._collection)
         )
 
+        playlist = await session.scalar(select(Playlists.id).where(self._collection.playlist_id == Playlists.id))
+        if not playlist:
+            raise ForeignKeyViolationError(message=f"Playlist with id {pair.playlist_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(self._collection.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {pair.track_id} not found")
+
         try:
             created_pair = await session.scalar(query)
             await session.flush()
@@ -80,6 +88,14 @@ class PlaylistAndTrackPairRepository:
             .values(pair.model_dump())
             .returning(self._collection)
         )
+
+        playlist = await session.scalar(select(Playlists.id).where(self._collection.playlist_id == Playlists.id))
+        if not playlist:
+            raise ForeignKeyViolationError(message=f"Playlist with id {pair.playlist_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(self._collection.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {pair.track_id} not found")
 
         updated_pair = await session.scalar(query)
 

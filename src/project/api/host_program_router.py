@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import host_program_repo
 from project.schemas.models import HostProgramPairCreateUpdateSchema, HostProgramPairSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, NotFound, ForeignKeyViolationError
 
 host_program_pair_router = APIRouter()
 
@@ -13,7 +13,7 @@ host_program_pair_router = APIRouter()
 )
 async def get_all_host_program_pairs() -> list[HostProgramPairSchema]:
     async with database.session() as session:
-        all_host_program_pairs = await host_program_repo.get_all_host_program_pairs(session)
+        all_host_program_pairs = await host_program_repo.get_all_pairs(session)
     
     return all_host_program_pairs
 
@@ -26,7 +26,7 @@ async def get_all_host_program_pairs() -> list[HostProgramPairSchema]:
 async def get_host_program_pair_by_id(pair_id: int) -> HostProgramPairSchema:
     try:
         async with database.session() as session:
-            pair = await host_program_repo.get_host_program_pair_by_id(session=session, pair_id=pair_id)
+            pair = await host_program_repo.get_pair_by_id(session=session, pair_id=pair_id)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 
@@ -41,7 +41,9 @@ async def get_host_program_pair_by_id(pair_id: int) -> HostProgramPairSchema:
 async def add_host_program_pair(pair_dto: HostProgramPairCreateUpdateSchema):
     try:
         async with database.session() as session:
-            new_pair = await host_program_repo.create_host_program_pair(session=session, pair=pair_dto)
+            new_pair = await host_program_repo.create_pair(session=session, pair=pair_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -56,11 +58,13 @@ async def add_host_program_pair(pair_dto: HostProgramPairCreateUpdateSchema):
 async def update_host_program_pair(pair_id: int, pair_dto: HostProgramPairCreateUpdateSchema):
     try:
         async with database.session() as session:
-            updated_pair = await host_program_repo.update_host_program_pair(
+            updated_pair = await host_program_repo.update_pair(
                 session=session,
                 pair_id=pair_id,
                 pair=pair_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 
@@ -74,7 +78,7 @@ async def update_host_program_pair(pair_id: int, pair_dto: HostProgramPairCreate
 async def delete_host_program_pair(pair_id: int):
     try:
         async with database.session() as session:
-            pair = await host_program_repo.delete_host_program_pair(session=session, pair_id=pair_id)
+            pair = await host_program_repo.delete_pair(session=session, pair_id=pair_id)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

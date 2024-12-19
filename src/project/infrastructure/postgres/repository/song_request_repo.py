@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import SongRequests
+from project.infrastructure.postgres.models import Programs, SongRequests, Tracks
 from project.schemas.models import SongRequestCreateUpdateSchema, SongRequestSchema
-from project.core.exceptions import NotFound, AlreadyExists
+from project.core.exceptions import ForeignKeyViolationError, NotFound, AlreadyExists
 
 
 class SongRequestsRepository:
@@ -60,6 +60,14 @@ class SongRequestsRepository:
             .returning(self._collection)
         )
 
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {song_request.program_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(self._collection.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {song_request.track_id} not found")
+
         try:
             created_song_request = await session.scalar(query)
             await session.flush()
@@ -80,6 +88,14 @@ class SongRequestsRepository:
             .values(song_request.model_dump())
             .returning(self._collection)
         )
+
+        program = await session.scalar(select(Programs.id).where(self._collection.program_id == Programs.id))
+        if not program:
+            raise ForeignKeyViolationError(message=f"Program with id {song_request.program_id} not found")
+        
+        track = await session.scalar(select(Tracks.id).where(self._collection.track_id == Tracks.id))
+        if not track:
+            raise ForeignKeyViolationError(message=f"Track with id {song_request.track_id} not found")
 
         updated_song_request = await session.scalar(query)
 

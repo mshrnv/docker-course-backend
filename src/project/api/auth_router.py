@@ -21,7 +21,7 @@ async def login_for_access_token(
 ) -> Token:
     try:
         async with database.session() as session:
-            user = await user_repo.get_user_by_email(session=session, email=form_data.username)
+            user = await user_repo.get_user_by_username(session=session, username=form_data.username)
 
         if not verify_password(plain_password=form_data.password, hashed_password=user.password):
             raise HTTPException(
@@ -37,7 +37,7 @@ async def login_for_access_token(
         )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    token_data = {"sub": user.email}
+    token_data = {"sub": user.username}
 
     to_encode = token_data.copy()
     if access_token_expires:

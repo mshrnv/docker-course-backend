@@ -6,8 +6,8 @@ from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from project.core.config import settings
-from project.core.exceptions import DatabaseError
+from ...core.config import settings
+from ...core.exceptions import DatabaseError
 
 
 class PostgresDatabase:

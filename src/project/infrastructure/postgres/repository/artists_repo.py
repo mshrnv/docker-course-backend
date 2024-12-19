@@ -3,9 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update, delete, true
 from sqlalchemy.exc import IntegrityError, InterfaceError
 
-from project.infrastructure.postgres.models import Artists
+from project.infrastructure.postgres.models import Artists, Genres
 from project.schemas.models import ArtistCreateUpdateSchema, ArtistSchema
-from project.core.exceptions import NotFound, AlreadyExists
+from project.core.exceptions import ForeignKeyViolationError, NotFound, AlreadyExists
 
 
 class ArtistsRepository:
@@ -60,6 +60,10 @@ class ArtistsRepository:
             .returning(self._collection)
         )
 
+        genre = await session.scalar(select(Genres.id).where(Artists.genre_id == Genres.id))
+        if not genre:
+            raise ForeignKeyViolationError(message=f"Genre with id {artist.genre_id} not found")
+
         try:
             created_artist = await session.scalar(query)
             await session.flush()
@@ -80,6 +84,10 @@ class ArtistsRepository:
             .values(artist.model_dump())
             .returning(self._collection)
         )
+
+        genre = await session.scalar(select(Genres.id).where(Artists.genre_id == Genres.id))
+        if not genre:
+            raise ForeignKeyViolationError(message=f"Genre with id {artist.genre_id} not found")
 
         updated_artist = await session.scalar(query)
 

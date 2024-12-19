@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import tracks_repo
 from project.schemas.models import TrackCreateUpdateSchema, TrackSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, ForeignKeyViolationError, NotFound
 
 tracks_router = APIRouter()
 
@@ -42,6 +42,8 @@ async def add_track(track_dto: TrackCreateUpdateSchema):
     try:
         async with database.session() as session:
             new_track = await tracks_repo.create_track(session=session, track=track_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -61,6 +63,8 @@ async def update_track(track_id: int, track_dto: TrackCreateUpdateSchema):
                 track_id=track_id,
                 track=track_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

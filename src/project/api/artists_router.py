@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from project.api.depends import database
 from project.api.depends import artists_repo
 from project.schemas.models import ArtistCreateUpdateSchema, ArtistSchema
-from project.core.exceptions import Error, NotFound
+from project.core.exceptions import Error, NotFound, ForeignKeyViolationError
 
 artists_router = APIRouter()
 
@@ -42,6 +42,8 @@ async def add_artist(artist_dto: ArtistCreateUpdateSchema):
     try:
         async with database.session() as session:
             new_artist = await artists_repo.create_artist(session=session, artist=artist_dto)
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except Error as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
 
@@ -61,6 +63,8 @@ async def update_artist(artist_id: int, artist_dto: ArtistCreateUpdateSchema):
                 artist_id=artist_id,
                 artist=artist_dto,
             )
+    except ForeignKeyViolationError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.message)
     except NotFound as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.message)
 

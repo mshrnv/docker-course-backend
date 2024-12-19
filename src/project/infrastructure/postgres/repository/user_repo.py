@@ -24,20 +24,20 @@ class UserRepository:
         except (Exception, InterfaceError):
             return False
 
-    async def get_user_by_email(
+    async def get_user_by_username(
         self,
         session: AsyncSession,
-        email: str,
+        username: str,
     ) -> UserSchema:
         query = (
             select(self._collection)
-            .where(self._collection.email == email)
+            .where(self._collection.username == username)
         )
 
         user = await session.scalar(query)
 
         if not user:
-            raise NotFound(_id=email)
+            raise NotFound(_id=username)
 
         return UserSchema.model_validate(obj=user)
 
@@ -83,7 +83,7 @@ class UserRepository:
             created_user = await session.scalar(query)
             await session.flush()
         except IntegrityError:
-            raise AlreadyExists(email=user.email)
+            raise AlreadyExists(username=user.username)
 
         return UserSchema.model_validate(obj=created_user)
 
